@@ -70,16 +70,34 @@ endf
 
 " Opens Xcode and runs Applescript command.
 fun s:XcodeRun(command)
-	call system("open -a Xcode ".b:cocoa_proj." && osascript -e 'tell app "
-				\ .'"Xcode" to '.a:command."' &")
+	" Build   Cmd-B
+	" Run     Cmd-R
+	" Test    Cmd-U
+	" Profile Cmd-I
+	" Analyze Cmd-shift-B
+	" Clean   Cmd-shift-K
+
+	let command_replace = { 'launch': 'Run', 'build': 'Build', 'clean': 'Clean' }
+	let cmd = get(command_replace, a:command, a:command)
+
+	let command_map = { 'Build': 11, 'Run': 15, 'Test': 32, 'Profile': 34 }
+	let command_shift_map = { 'Analyze': 11, 'Clean': 40 }
+
+	if(get(command_map, cmd, "") != "")
+		let code = command_map[cmd]. " using {command down}"
+	elseif(get(command_shift_map, cmd, "") != "")
+		let code = command_shift_map[cmd]. " using {command down, shift down}"
+	end
+
+	call system("open -a Xcode.app ".b:cocoa_proj." && osascript -e '"
+				\ ."tell application \"Xcode\" to activate \r"
+				\ ."tell application \"System Events\" \r"
+				\ ."     tell process \"Xcode\" \r"
+				\ ."          key code " .code. " \r"
+				\ ."    end tell \r"
+				\ ."end tell'")
 endf
 
 fun s:BuildAnd(command)
-	call system("open -a Xcode ".b:cocoa_proj." && osascript -e 'tell app "
-				\ ."\"Xcode\"' -e '"
-				\ .'set target_ to project of active project document '
-				\ ."' -e '"
-				\ .'if (build target_) starts with "Build succeeded" then '
-				\ .a:command.' target_'
-				\ ."' -e 'end tell'")
+	call s:XcodeRun(a:command)
 endf
